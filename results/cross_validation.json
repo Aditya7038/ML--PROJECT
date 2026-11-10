@@ -1,0 +1,257 @@
+{
+  "note": "5-fold cross-validation on ESA train data, one row per event",
+  "subsets": {
+    "ALL EVENTS": {
+      "events": 11942,
+      "high_risk": 323,
+      "models": [
+        {
+          "model": "Distance-only baseline",
+          "what": "Rule, not trained: the closer the pair, the higher the priority.",
+          "features": "miss distance",
+          "pr_auc": [
+            0.07008236355097619,
+            0.05709195475360886,
+            0.09330979823518945
+          ],
+          "roc_auc": [
+            0.6621975002511367,
+            0.6293669539954247,
+            0.6934918591505077
+          ],
+          "removed": [
+            0.1618039418194337,
+            0.13308210500497486,
+            0.2050197839807519
+          ]
+        },
+        {
+          "model": "Logistic regression (2 feat)",
+          "what": "Simple model on miss distance and speed.",
+          "features": "miss distance, speed",
+          "pr_auc": [
+            0.053668349465006815,
+            0.04461919053881297,
+            0.06784369815492389
+          ],
+          "roc_auc": [
+            0.6518587975231133,
+            0.6157157262976046,
+            0.6840749661417392
+          ],
+          "removed": [
+            0.1500989758154746,
+            0.11361017373481797,
+            0.19217508796557473
+          ]
+        },
+        {
+          "model": "Random forest (2 feat)",
+          "what": "Tree ensemble on miss distance and speed.",
+          "features": "miss distance, speed",
+          "pr_auc": [
+            0.040578875450947335,
+            0.03406227800848532,
+            0.05070330888620479
+          ],
+          "roc_auc": [
+            0.6142498528485822,
+            0.5849142092448034,
+            0.6453606144065801
+          ],
+          "removed": [
+            0.23495997934417767,
+            0.17959360561596946,
+            0.27934608364081187
+          ]
+        },
+        {
+          "model": "Gradient boosting (2 feat)",
+          "what": "Boosted trees on miss distance and speed.",
+          "features": "miss distance, speed",
+          "pr_auc": [
+            0.04528045029739791,
+            0.03775651037886714,
+            0.062036887855940234
+          ],
+          "roc_auc": [
+            0.6170644484573016,
+            0.5895484554439572,
+            0.6430744479029399
+          ],
+          "removed": [
+            0.21223857474825714,
+            0.14103541199015265,
+            0.29051608810091695
+          ]
+        },
+        {
+          "model": "Gradient boosting (catalog feat)",
+          "what": "Adds object type, size and orbit shape (public catalog data).",
+          "features": "13 catalog fields",
+          "pr_auc": [
+            0.11536965965781985,
+            0.08746557435669175,
+            0.1472140872135407
+          ],
+          "roc_auc": [
+            0.769979885087333,
+            0.7462966940727649,
+            0.7973021861165754
+          ],
+          "removed": [
+            0.41457956794904893,
+            0.32234045972719655,
+            0.5074831205747364
+          ]
+        },
+        {
+          "model": "REFERENCE: gradient boosting (all feat)",
+          "what": "Adds covariance and tracking quality. Needs CDM data, not in SOCRATES.",
+          "features": "~100 CDM fields",
+          "pr_auc": [
+            0.36960515569029995,
+            0.3207803882197897,
+            0.4200721947838721
+          ],
+          "roc_auc": [
+            0.9282918951210745,
+            0.9134522075069827,
+            0.9395825345079822
+          ],
+          "removed": [
+            0.7858679748687495,
+            0.7266483079208085,
+            0.8298444679895685
+          ]
+        }
+      ]
+    },
+    "MISS DISTANCE < 5 km": {
+      "events": 2853,
+      "high_risk": 160,
+      "models": [
+        {
+          "model": "Distance-only baseline",
+          "what": "Rule, not trained: the closer the pair, the higher the priority.",
+          "features": "miss distance",
+          "pr_auc": [
+            0.10369209218057487,
+            0.07953995539680407,
+            0.1385578404140498
+          ],
+          "roc_auc": [
+            0.6335151318232455,
+            0.5836306259328996,
+            0.6739912532492034
+          ],
+          "removed": [
+            0.14073523950984035,
+            0.12297849768169512,
+            0.24806157295526224
+          ]
+        },
+        {
+          "model": "Logistic regression (2 feat)",
+          "what": "Simple model on miss distance and speed.",
+          "features": "miss distance, speed",
+          "pr_auc": [
+            0.07306132409694227,
+            0.059443971754456905,
+            0.08862210174532868
+          ],
+          "roc_auc": [
+            0.5735796509468994,
+            0.526678363941967,
+            0.6198484249248706
+          ],
+          "removed": [
+            0.13516524322317114,
+            0.08004032246936173,
+            0.18821776179981453
+          ]
+        },
+        {
+          "model": "Random forest (2 feat)",
+          "what": "Tree ensemble on miss distance and speed.",
+          "features": "miss distance, speed",
+          "pr_auc": [
+            0.06496773239704355,
+            0.05069568855179614,
+            0.08248534359736405
+          ],
+          "roc_auc": [
+            0.5352383494244337,
+            0.4946741985900506,
+            0.57743399669657
+          ],
+          "removed": [
+            0.11956925362049764,
+            0.0714265909691048,
+            0.18298585614384
+          ]
+        },
+        {
+          "model": "Gradient boosting (2 feat)",
+          "what": "Boosted trees on miss distance and speed.",
+          "features": "miss distance, speed",
+          "pr_auc": [
+            0.07229081895213421,
+            0.05579345509743978,
+            0.09873536098423356
+          ],
+          "roc_auc": [
+            0.533837727441515,
+            0.48469038099118833,
+            0.5780060099949624
+          ],
+          "removed": [
+            0.12736724842183433,
+            0.06843849909718891,
+            0.16164427629125425
+          ]
+        },
+        {
+          "model": "Gradient boosting (catalog feat)",
+          "what": "Adds object type, size and orbit shape (public catalog data).",
+          "features": "13 catalog fields",
+          "pr_auc": [
+            0.09259167190867587,
+            0.07573478600138255,
+            0.13018587345815508
+          ],
+          "roc_auc": [
+            0.6348542517638321,
+            0.5993288082210908,
+            0.6770102464837324
+          ],
+          "removed": [
+            0.2253991830672113,
+            0.15006348959379018,
+            0.3260136097076321
+          ]
+        },
+        {
+          "model": "REFERENCE: gradient boosting (all feat)",
+          "what": "Adds covariance and tracking quality. Needs CDM data, not in SOCRATES.",
+          "features": "~100 CDM fields",
+          "pr_auc": [
+            0.3975275166771433,
+            0.3372394419892613,
+            0.47939480959025943
+          ],
+          "roc_auc": [
+            0.8941654288897141,
+            0.8684460728152886,
+            0.917457123187479
+          ],
+          "removed": [
+            0.6743408837727441,
+            0.5731603201332682,
+            0.7689236617709042
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -21,8 +21,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from evaluate import (CATALOG, HIGH_RISK, OBJ_TYPES, LEAKY, NO_TIMING, SEED, SHARED, build_events,  # noqa: E402
-                      with_ci)
+from evaluate import (CATALOG, HIGH_RISK, LEAKY, NO_TIMING, OBJ_TYPES, SEED, SHARED, build_events,  # noqa: E402
+                      record, save_results, with_ci)
 
 
 def lr():
@@ -78,10 +78,16 @@ def main(train_path: str, test_path: str, private_path: str) -> None:
     rows.append(("Logistic regression (2 feat, 2-3 day alerts only)", m.predict_proba(te[SHARED])[:, 1]))
     m = HistGradientBoostingClassifier(class_weight="balanced", random_state=SEED).fit(tr.loc[near, SHARED], ytr[near])
     rows.append(("Gradient boosting (2 feat, 2-3 day alerts only)", m.predict_proba(te[SHARED])[:, 1]))
+    saved = []
     for name, s in rows:
         p, lo, hi = with_ci(yte, s, rng)
+        saved.append(record(name, p, lo, hi))
         print(f"{name:50s} {p[0]:.3f} [{lo[0]:.3f},{hi[0]:.3f}]  {p[1]:.3f} [{lo[1]:.3f},{hi[1]:.3f}]"
               f"   {p[2]:6.1%} [{lo[2]:.1%},{hi[2]:.1%}]")
+
+    save_results("results/independent_test.json",
+                 {"note": "Models trained on all ESA train events, scored on ESA's own test files",
+                  "events": int(len(yte)), "high_risk": int(yte.sum()), "models": saved})
 
 
 if __name__ == "__main__":

@@ -30,19 +30,28 @@ What this says, honestly:
 - Mismatch between train (2.7% high-risk) and test (6.9%) means absolute numbers differ between cross-validation and the test; compare models within one table.
 - We looked at test results before dropping `time_to_tca`. The decision rests on the train/test mismatch above, but the test is no longer fully untouched.
 
-## Demo (software layer)
+## Software layer
 
-`src/crf/socrates.py` loads SOCRATES and labels each alert: **act** (close and orbit data fresh), **check data first** (close but one orbit file is stale), **probably noise**. Close cut-off and stale cut-off are slider assumptions, not validated values. MAX_PROB and DILUTION are shown for comparison.
+```
+CelesTrak SOCRATES --(every 6 h)--> FastAPI backend --/alerts--> Streamlit dashboard
+ESA data --> evaluate.py, train_final.py --> results/*.json --/models--> backend
+```
+
+- **Backend** (`src/crf/api.py`, logic in `service.py`): downloads the latest SOCRATES file on startup and every `CRF_REFRESH_HOURS` (default 6; CelesTrak publishes about 3 times a day), keeps the last good copy if a download fails, ranks and flags alerts, and serves validation results. Endpoints: `GET /alerts`, `GET /health`, `GET /models`, `POST /refresh`. Swagger at `/docs`.
+- **Ranking** (`src/crf/socrates.py`): **act** (close and orbit data fresh), **check data first** (close but one orbit file is stale), **probably noise**. Ranked by miss distance, since nothing beat it on free fields. The close and stale cut-offs are slider assumptions. MAX_PROB and DILUTION are shown for comparison.
+- **Dashboard** (`dashboard/app.py`): Alerts tab, Models and accuracy tab (reads `results/`), How it works tab. Falls back to the bundled sample if the backend is off.
+
+Settings (environment variables): `CRF_SOCRATES_URL` (default is a best guess, verify by opening it in a browser), `CRF_REFRESH_HOURS`, `CRF_AUTO_REFRESH=0` to stop downloads, `CRF_SOCRATES_CSV` to pin a local file, `CRF_API_URL` for the dashboard.
 
 ```
 pip install -r requirements.txt
-uvicorn crf.api:app --app-dir src --reload     # API, docs at http://127.0.0.1:8000/docs
-streamlit run dashboard/app.py                  # dashboard
-python src/crf/evaluate.py data/train_data.csv  # cross-validation
-python src/crf/train_final.py data/train_data.csv data/test_data.csv data/test_data_private.csv
+uvicorn crf.api:app --app-dir src --reload     # terminal 1, from the project folder
+streamlit run dashboard\app.py                 # terminal 2
+python src/crf/evaluate.py data/train_data.csv  # writes results/cross_validation.json
+python src/crf/train_final.py data/train_data.csv data/test_data.csv data/test_data_private.csv  # writes results/independent_test.json
 ```
 
-The API and dashboard have not been run end-to-end by the author's tooling yet (no package access in the build environment); the scoring logic in `socrates.py` was tested on a real SOCRATES file.
+Tested: the scoring, download, caching and failure handling (in `service.py`) on a real SOCRATES file. The web wrappers `api.py` and `dashboard/app.py` could not be run by the author's tooling (no package access), so check them on your machine. The live CelesTrak download URL has not been tested from here.
 
 ## Limits
 

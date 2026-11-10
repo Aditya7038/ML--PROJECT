@@ -9,3 +9,4 @@ __pycache__/
 # demo sample is allowed
 !sample/*.csv
 models/
+cache/

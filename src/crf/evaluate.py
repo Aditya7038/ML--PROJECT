@@ -14,6 +14,8 @@ Metrics come from the pooled out-of-fold scores. Confidence intervals are 95% bo
 intervals over events. Reported on all events, and on events with miss distance < 5 km
 (the range SOCRATES covers).
 """
+import json
+import os
 import sys
 
 import numpy as np
@@ -42,6 +44,32 @@ CATALOG = SHARED + ["c_object_type", "t_rcs_estimate", "c_rcs_estimate",
                     "t_h_apo", "t_h_per", "c_h_apo", "c_h_per"]
 OBJ_TYPES = ["DEBRIS", "PAYLOAD", "ROCKET BODY", "TBA", "UNKNOWN"]
 LEAKY = ["risk", "max_risk_estimate", "max_risk_scaling"]
+
+
+DESCRIBE = {
+    "Distance-only baseline": ("Rule, not trained: the closer the pair, the higher the priority.", "miss distance"),
+    "Logistic regression (2 feat)": ("Simple model on miss distance and speed.", "miss distance, speed"),
+    "Random forest (2 feat)": ("Tree ensemble on miss distance and speed.", "miss distance, speed"),
+    "Gradient boosting (2 feat)": ("Boosted trees on miss distance and speed.", "miss distance, speed"),
+    "Gradient boosting (catalog feat)": ("Adds object type, size and orbit shape (public catalog data).",
+                                         "13 catalog fields"),
+    "REFERENCE: gradient boosting (all feat)": ("Adds covariance and tracking quality. Needs CDM data, not in SOCRATES.",
+                                                "~100 CDM fields"),
+}
+
+
+def record(name, p, lo, hi):
+    what, feats = DESCRIBE.get(name, ("Sensitivity check: trained on 2-3 day alerts only.", "miss distance, speed"))
+    return {"model": name, "what": what, "features": feats,
+            "pr_auc": [float(p[0]), float(lo[0]), float(hi[0])],
+            "roc_auc": [float(p[1]), float(lo[1]), float(hi[1])],
+            "removed": [float(p[2]), float(lo[2]), float(hi[2])]}
+
+
+def save_results(path, payload):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(payload, f, indent=2)
 
 
 def build_events(df: pd.DataFrame) -> pd.DataFrame:
@@ -120,14 +148,19 @@ def main(path: str) -> None:
 
     rng = np.random.default_rng(SEED)
     subsets = {"ALL EVENTS": np.ones(len(y), bool), "MISS DISTANCE < 5 km": (ev["miss_km"] < 5).to_numpy()}
+    saved = {}
     for title, mask in subsets.items():
         ys = y[mask]
+        saved[title] = {"events": int(mask.sum()), "high_risk": int(ys.sum()), "models": []}
         print(f"\n=== {title}: {int(mask.sum())} events, {int(ys.sum())} high-risk ===")
         print(f"{'model':42s} {'PR-AUC':>20s} {'ROC-AUC':>20s} {'false alarms removed @90% recall':>36s}")
         for name, s in scores.items():
             p, lo, hi = with_ci(ys, s[mask], rng)
+            saved[title]["models"].append(record(name, p, lo, hi))
             print(f"{name:42s} {p[0]:.3f} [{lo[0]:.3f},{hi[0]:.3f}]  {p[1]:.3f} [{lo[1]:.3f},{hi[1]:.3f}]"
                   f"   {p[2]:6.1%} [{lo[2]:.1%},{hi[2]:.1%}]")
+    save_results("results/cross_validation.json", {"note": "5-fold cross-validation on ESA train data, one row per event",
+                                                   "subsets": saved})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,167 @@
+{
+  "note": "Models trained on all ESA train events, scored on ESA's own test files",
+  "events": 2167,
+  "high_risk": 150,
+  "models": [
+    {
+      "model": "Distance-only baseline",
+      "what": "Rule, not trained: the closer the pair, the higher the priority.",
+      "features": "miss distance",
+      "pr_auc": [
+        0.3075263414363748,
+        0.254091457845626,
+        0.38129215335129446
+      ],
+      "roc_auc": [
+        0.8316476615435465,
+        0.7996800452335575,
+        0.8578286209328505
+      ],
+      "removed": [
+        0.5974219137332673,
+        0.4464684820877762,
+        0.6453892827105611
+      ]
+    },
+    {
+      "model": "Logistic regression (2 feat)",
+      "what": "Simple model on miss distance and speed.",
+      "features": "miss distance, speed",
+      "pr_auc": [
+        0.24666375036479432,
+        0.19827821903943832,
+        0.30215294737226434
+      ],
+      "roc_auc": [
+        0.8295455296645183,
+        0.7934844607748117,
+        0.8614178675398267
+      ],
+      "removed": [
+        0.6142786316311353,
+        0.42533978340426837,
+        0.654802000219251
+      ]
+    },
+    {
+      "model": "Random forest (2 feat)",
+      "what": "Tree ensemble on miss distance and speed.",
+      "features": "miss distance, speed",
+      "pr_auc": [
+        0.1984036597317376,
+        0.14593800353163908,
+        0.2704488827643432
+      ],
+      "roc_auc": [
+        0.7097471492315319,
+        0.6649428669481084,
+        0.7639123837312384
+      ],
+      "removed": [
+        0.2850768468021815,
+        0.2091177687609237,
+        0.43651092813758025
+      ]
+    },
+    {
+      "model": "Gradient boosting (2 feat)",
+      "what": "Boosted trees on miss distance and speed.",
+      "features": "miss distance, speed",
+      "pr_auc": [
+        0.25978379803771556,
+        0.20095423902869794,
+        0.3282576750146634
+      ],
+      "roc_auc": [
+        0.7722591307221947,
+        0.7234923037383144,
+        0.8125540609724322
+      ],
+      "removed": [
+        0.3500247892910263,
+        0.2750933494783905,
+        0.4664524756224558
+      ]
+    },
+    {
+      "model": "Gradient boosting (catalog feat)",
+      "what": "Adds object type, size and orbit shape (public catalog data).",
+      "features": "13 catalog fields",
+      "pr_auc": [
+        0.24414728875791547,
+        0.19103786689568708,
+        0.3055827350225917
+      ],
+      "roc_auc": [
+        0.7906527846636919,
+        0.7557064715830202,
+        0.8241947612674565
+      ],
+      "removed": [
+        0.45066931085770945,
+        0.3657802408319649,
+        0.5186942193902093
+      ]
+    },
+    {
+      "model": "REFERENCE: gradient boosting (all feat)",
+      "what": "Adds covariance and tracking quality. Needs CDM data, not in SOCRATES.",
+      "features": "~100 CDM fields",
+      "pr_auc": [
+        0.4657044584402166,
+        0.37424867348000895,
+        0.5420825565814358
+      ],
+      "roc_auc": [
+        0.8963377954057181,
+        0.8702966290694857,
+        0.9167360618872316
+      ],
+      "removed": [
+        0.7312840852751612,
+        0.6309966097931718,
+        0.7905826258141211
+      ]
+    },
+    {
+      "model": "Logistic regression (2 feat, 2-3 day alerts only)",
+      "what": "Sensitivity check: trained on 2-3 day alerts only.",
+      "features": "miss distance, speed",
+      "pr_auc": [
+        0.25352780297042227,
+        0.20834651279549718,
+        0.3117852629114562
+      ],
+      "roc_auc": [
+        0.8297372335151214,
+        0.7919876249765253,
+        0.8569676208157228
+      ],
+      "removed": [
+        0.614774417451661,
+        0.439934182751782,
+        0.6635419220948812
+      ]
+    },
+    {
+      "model": "Gradient boosting (2 feat, 2-3 day alerts only)",
+      "what": "Sensitivity check: trained on 2-3 day alerts only.",
+      "features": "miss distance, speed",
+      "pr_auc": [
+        0.18562618707624434,
+        0.14096767043038402,
+        0.2388559698734623
+      ],
+      "roc_auc": [
+        0.7247892910262768,
+        0.6821721679586011,
+        0.7608199469714659
+      ],
+      "removed": [
+        0.3663857213683689,
+        0.31025814392381307,
+        0.403950756368487
+      ]
+    }
+  ]
+}
