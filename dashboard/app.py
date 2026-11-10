@@ -92,8 +92,9 @@ def badge(text, color=None):
 
 def style_fig(fig, height=380):
     fig.update_layout(template="plotly_dark", height=height, paper_bgcolor="rgba(0,0,0,0)",
-                      plot_bgcolor="rgba(8,16,34,0.7)", margin=dict(l=10, r=10, t=40, b=10),
-                      legend=dict(orientation="h", y=1.12, x=0))
+                      plot_bgcolor="rgba(8,16,34,0.7)", margin=dict(l=10, r=10, t=70, b=10),
+                      title=dict(x=0.0, xanchor="left", y=0.97, yanchor="top"),
+                      legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0))
     return fig
 
 
@@ -141,7 +142,7 @@ else:
 nxt = health.get("next_refresh_in_hours")
 parts.append(badge(f"refreshes every {health['refresh_every_hours']:g} h"
                    + (f" · next in {nxt:.1f} h" if nxt is not None else "")))
-parts.append(badge(f"{health['rows']:,} conjunctions loaded"))
+parts.append(badge(f"{health['rows']:,} conjunctions in the file"))
 if health.get("last_error"):
     parts.append(badge("Last download failed: " + health["last_error"][:70], PINK))
 st.markdown(f"""<div class="hero"><h1>CONJUNCTION <span>RISK FILTER</span></h1>
@@ -164,6 +165,9 @@ with tab_alerts:
     kpi(c2, "Check data first", f"{chk:,}", "close, but orbit data is old", AMBER)
     kpi(c3, "Probably noise", f"{noise:,}", "not close", TEAL)
     kpi(c4, "Alerts to review", f"{review:,}", f"of {total:,} total ({1 - review / max(total, 1):.1%} fewer)", CYAN)
+    dropped = health["rows"] - total
+    st.caption(f"The file has {health['rows']:,} pairs; {total:,} are counted here. The other {dropped:,} are removed by the "
+               f"sidebar filters (for example 'only pairs with an active object'). Act + check data first + probably noise = {total:,}.")
     st.caption("Counts depend on the two sliders, which are assumptions. Only the distance ranking is validated "
                "(see Models and results). The bundled sample holds only the 3,000 closest pairs, so 'probably noise' "
                "is cut off there; live data has everything.")
@@ -177,7 +181,8 @@ with tab_alerts:
                 x=s["miss_km"], y=s["speed_kms"], mode="markers", name=lab,
                 marker=dict(color=color, size=7, opacity=0.8), text=s["name1"] + "  vs  " + s["name2"],
                 hovertemplate="%{text}<br>miss %{x:.3f} km<br>speed %{y:.1f} km/s<extra></extra>"))
-        fig.update_xaxes(type="log", title="Miss distance (km, log scale)")
+        fig.update_xaxes(type="log", title="Miss distance (km, log scale)", tickvals=[0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1],
+                         ticktext=["0.01", "0.02", "0.05", "0.1", "0.2", "0.5", "1"])
         fig.update_yaxes(title="Relative speed (km/s)")
         fig.update_layout(title="Closest pairs: miss distance vs speed")
         g1.plotly_chart(style_fig(fig), use_container_width=True)
@@ -187,7 +192,8 @@ with tab_alerts:
             s = rows[rows["label"] == lab]
             fig2.add_trace(go.Histogram(x=s["max_dse"], name=lab, marker_color=color, xbins=dict(size=0.5)))
         fig2.update_layout(barmode="stack", title="How old is the orbit data? (top 1,000 alerts)")
-        fig2.add_vline(x=stale, line_dash="dash", line_color=CREAM, annotation_text="stale cut-off")
+        fig2.add_vline(x=stale, line_dash="dash", line_color=CREAM, annotation_text="stale cut-off",
+                       annotation_position="top right")
         fig2.update_xaxes(title="Age of the older orbit file (days)")
         fig2.update_yaxes(title="Alerts")
         g2.plotly_chart(style_fig(fig2), use_container_width=True)
@@ -203,7 +209,23 @@ with tab_alerts:
         "dilution": "dilution", "same_family": "same constellation"})
     styled = view.style.map(lambda v: f"color:{LABEL_COLOR.get(v, CREAM)}; font-weight:600", subset=["label"])
     st.dataframe(styled, hide_index=True, use_container_width=True, height=480)
-    st.caption("SOCRATES max prob is CelesTrak's own worst-case bound, shown only for comparison.")
+    with st.expander("What do the columns mean? Where does the data come from?"):
+        st.markdown("""
+**Source:** CelesTrak **SOCRATES** (celestrak.org/SOCRATES), a free public service. It predicts close approaches within 5 km
+over the next 7 days from public NORAD two-line orbit files (TLEs). A new file comes out about 3 times a day.
+
+- **object 1 / object 2**: the two objects that will pass close. Names come from the CelesTrak catalog. `STARLINK-34759` is a satellite,
+  `DEB` means debris, `R/B` means rocket body. The order has no meaning (object 1 is not the "main" one).
+- **closest approach (UTC)**: time of closest approach (TCA).
+- **miss (km)**: predicted distance between them at that moment.
+- **speed (km/s)**: how fast they pass each other. Faster means a worse crash.
+- **oldest orbit (days)**: age of the older of the two orbit files. Old means the miss distance is less trustworthy.
+- **SOCRATES max prob**: CelesTrak's *maximum* collision probability. TLEs have no uncertainty data, so it assumes the worst-case
+  uncertainty. It is an upper bound, not the real probability, which is usually much lower.
+- **dilution**: the position-uncertainty size (km) at which that maximum probability occurs (the "dilution threshold").
+  Think of it as how the max prob was worked out, not a risk score. We show it for reference and do not use it to rank.
+- **same constellation**: both objects are from one family, e.g. two Starlinks.
+""")
 
 # ---------------- models ----------------
 with tab_models:
