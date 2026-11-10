@@ -5,7 +5,7 @@ Usage:
 
 Compares, with 5-fold cross-validation (one row per event, so the split is by event):
   - distance-only baseline (a rule, not trained)
-  - logistic regression, random forest, gradient boosting on the 3 shared features
+  - logistic regression, random forest, gradient boosting on the 2 shared features (miss distance, speed)
   - a REFERENCE gradient boosting model on all ESA features (includes covariance).
     It is not usable on SOCRATES; it only shows what covariance adds.
     risk, max_risk_estimate and max_risk_scaling are dropped so it cannot copy the label.
@@ -31,7 +31,16 @@ TARGET_RECALL = 0.90
 SEED = 42
 N_FOLDS = 5
 N_BOOT = 200
-SHARED = ["time_to_tca", "miss_km", "speed_kms"]
+# time_to_tca is deliberately NOT a feature: in ESA train data it is a collection artifact
+# (early alerts are riskier there) that does not hold in ESA test data. See README.
+SHARED = ["miss_km", "speed_kms"]
+NO_TIMING = ["time_to_tca"]
+# "Catalog" tier: things a public catalog (CelesTrak GP + SATCAT) can supply for any object:
+# object type, size (RCS), orbit shape. No covariance, no tracking quality.
+CATALOG = SHARED + ["c_object_type", "t_rcs_estimate", "c_rcs_estimate",
+                    "t_j2k_sma", "t_j2k_ecc", "t_j2k_inc", "c_j2k_sma", "c_j2k_ecc", "c_j2k_inc",
+                    "t_h_apo", "t_h_per", "c_h_apo", "c_h_per"]
+OBJ_TYPES = ["DEBRIS", "PAYLOAD", "ROCKET BODY", "TBA", "UNKNOWN"]
 LEAKY = ["risk", "max_risk_estimate", "max_risk_scaling"]
 
 
@@ -44,7 +53,7 @@ def build_events(df: pd.DataFrame) -> pd.DataFrame:
     snap["miss_km"] = snap["miss_distance"] / 1000.0
     snap["speed_kms"] = snap["relative_speed"] / 1000.0
     if "c_object_type" in snap:
-        snap["c_object_type"] = snap["c_object_type"].astype("category").cat.codes
+        snap["c_object_type"] = pd.Categorical(snap["c_object_type"], categories=OBJ_TYPES).codes
     return snap
 
 
@@ -91,19 +100,21 @@ def main(path: str) -> None:
     print(f"events: {len(ev)}  high-risk: {int(y.sum())} ({y.mean():.2%})")
 
     full_cols = [c for c in ev.select_dtypes("number").columns
-                 if c not in LEAKY + ["high_risk"]]
+                 if c not in LEAKY + NO_TIMING + ["high_risk"]]
     X3 = ev[SHARED]
     Xfull = ev[full_cols]
     print(f"reference model uses {len(full_cols)} features (covariance included)")
 
     scores = {"Distance-only baseline": -ev["miss_km"].to_numpy()}
-    scores["Logistic regression (3 feat)"] = oof_scores(
+    scores["Logistic regression (2 feat)"] = oof_scores(
         lambda: make_pipeline(StandardScaler(), LogisticRegression(class_weight="balanced", max_iter=1000)), X3, y)
-    scores["Random forest (3 feat)"] = oof_scores(
+    scores["Random forest (2 feat)"] = oof_scores(
         lambda: RandomForestClassifier(n_estimators=300, min_samples_leaf=5, class_weight="balanced",
                                        random_state=SEED, n_jobs=-1), X3, y)
-    scores["Gradient boosting (3 feat)"] = oof_scores(
+    scores["Gradient boosting (2 feat)"] = oof_scores(
         lambda: HistGradientBoostingClassifier(class_weight="balanced", random_state=SEED), X3, y)
+    scores["Gradient boosting (catalog feat)"] = oof_scores(
+        lambda: HistGradientBoostingClassifier(class_weight="balanced", random_state=SEED), ev[CATALOG], y)
     scores["REFERENCE: gradient boosting (all feat)"] = oof_scores(
         lambda: HistGradientBoostingClassifier(class_weight="balanced", random_state=SEED), Xfull, y)
 

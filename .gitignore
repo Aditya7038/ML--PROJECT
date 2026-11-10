@@ -5,3 +5,7 @@ data/
 __pycache__/
 .venv/
 .ipynb_checkpoints/
+
+# demo sample is allowed
+!sample/*.csv
+models/
