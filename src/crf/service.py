@@ -42,9 +42,10 @@ def fetch_socrates(url: str, dest: Path, timeout: float = 120.0) -> int:
 
 class Service:
     def __init__(self, url: str, cache: Path, sample: Path, results: Path, refresh_hours: float = 6.0,
-                 override: Path | None = None):
+                 override: Path | None = None, timeout: float = 120.0):
         self.url, self.cache, self.sample, self.results = url, cache, sample, results
         self.refresh_hours = refresh_hours
+        self.timeout = timeout
         self.override = override
         self.meta_path = cache.with_suffix(".json")
         self.last_attempt: str | None = None
@@ -72,13 +73,33 @@ class Service:
         """Blocking download. On failure keep the last good file and record the error."""
         self.last_attempt = _now().isoformat()
         try:
-            size = fetch_socrates(self.url, self.cache)
+            size = fetch_socrates(self.url, self.cache, self.timeout)
             self.fetched_at = _now().isoformat()
             self.last_error = None
             self.meta_path.write_text(json.dumps({"fetched_at": self.fetched_at, "bytes": size, "url": self.url}))
         except Exception as e:  # network, HTTP, or bad content: never crash the service
             self.last_error = f"{type(e).__name__}: {e}"
         return self.health()
+
+    def ensure_fresh(self, retry_hours: float = 0.25) -> None:
+        """Download if the cached file is missing or older than refresh_hours.
+
+        Used when the dashboard runs without the FastAPI server: it still gets live data.
+        After a failed attempt it waits retry_hours before trying again, so a page reload
+        never hammers CelesTrak or blocks on a dead connection every time.
+        """
+        if self.override:
+            return
+        age = None
+        if self.fetched_at and self.cache.exists():
+            age = (_now() - datetime.fromisoformat(self.fetched_at)).total_seconds() / 3600
+        if age is not None and age < self.refresh_hours:
+            return
+        if self.last_attempt:
+            since = (_now() - datetime.fromisoformat(self.last_attempt)).total_seconds() / 3600
+            if since < retry_hours:
+                return
+        self.refresh()
 
     def data(self) -> pd.DataFrame:
         p = self.path()

@@ -5,3 +5,4 @@ fastapi
 uvicorn
 streamlit
 requests
+plotly
